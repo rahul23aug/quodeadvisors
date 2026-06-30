@@ -27,6 +27,8 @@ The scraper will use browser automation only for publicly accessible pages and w
 
 The system will not implement fingerprint spoofing, credential abuse, CAPTCHA bypassing, proxy rotation, or techniques intended to defeat platform security controls.
 
+The collector may optionally use a locally authenticated browser profile to access content available to the authenticated user. The implementation does not manipulate authentication tokens, extract credentials, or attempt to bypass authentication mechanisms.
+
 Rationale
 
 The objective is to demonstrate resilient data engineering under real-world constraints, not to bypass a platform’s protections.
