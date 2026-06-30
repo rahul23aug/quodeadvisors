@@ -29,6 +29,8 @@ The system will not implement fingerprint spoofing, credential abuse, CAPTCHA by
 
 The collector may optionally use a locally authenticated browser profile to access content available to the authenticated user. The implementation does not manipulate authentication tokens, extract credentials, or attempt to bypass authentication mechanisms.
 
+Authentication through a legitimate user browser session is supported, but credential extraction, token injection, and other authentication manipulation techniques are intentionally excluded.
+
 Rationale
 
 The objective is to demonstrate resilient data engineering under real-world constraints, not to bypass a platform’s protections.
