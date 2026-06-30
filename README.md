@@ -6,6 +6,18 @@ Quantitative data engineering project for collecting, normalizing, and processin
 
 The X/Twitter source is intentionally designed as a resilient data pipeline stage, not as an evasion scraper.
 
+
+### Live X Collection Note
+
+The live X collector is implemented as a best-effort source. During development,
+X throttled automated browser access before any tweets could be collected.
+
+Rather than bypassing platform controls using stealth, proxy rotation, or token manipulation,
+the collector fails safely, checkpoints state, and the pipeline falls back to a local sample dataset.
+
+This preserves the purpose of the assignment: demonstrating collection architecture,
+deduplication, storage, signal generation, and scalable downstream processing.
+
 ### Source Boundary
 
 Downstream processing code should consume `CollectorResult` objects and `Tweet` records. It should not know whether records came from Selenium, a browser profile, or local fallback sample data.
