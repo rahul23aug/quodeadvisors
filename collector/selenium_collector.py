@@ -21,12 +21,13 @@ from urllib.parse import quote, urlencode, urlparse
 
 from collector.base import BaseCollector
 from collector.exceptions import CollectorError, ExtractionError, LoginWallDetected, RateLimited
-from collector.models import Tweet
+from collector.models import CollectorResult, CollectorStatus, Tweet
 from config.settings import CollectorSettings
 
 try:  # Selenium is optional until initialize() creates a browser session.
     from selenium import webdriver
     from selenium.common.exceptions import StaleElementReferenceException, TimeoutException, WebDriverException
+    from selenium.webdriver.chrome.service import Service as ChromeService
     from selenium.webdriver.common.by import By
     from selenium.webdriver.remote.webdriver import WebDriver
     from selenium.webdriver.remote.webelement import WebElement
@@ -125,6 +126,8 @@ class SeleniumCollector(BaseCollector):
         self.seen_tweet_ids: set[str] = set()
         self.retry_attempts = 0
         self._initialized = driver is not None
+        self._last_status = CollectorStatus.SUCCESS
+        self._last_error: str | None = None
 
     def initialize(self) -> None:
         """Start Chrome unless a driver was injected by the caller."""
@@ -146,7 +149,11 @@ class SeleniumCollector(BaseCollector):
         if self.settings.chrome_binary_path is not None:
             options.binary_location = str(self.settings.chrome_binary_path)
 
-        self.driver = webdriver.Chrome(options=options)
+        service = None
+        if self.settings.chrome_driver_path is not None:
+            service = ChromeService(executable_path=str(self.settings.chrome_driver_path))
+
+        self.driver = webdriver.Chrome(service=service, options=options)
         self.driver.set_page_load_timeout(self.settings.page_load_timeout_seconds)
         self._initialized = True
         self._log(logging.INFO, "collector_started", headless=self.settings.headless)
@@ -155,6 +162,8 @@ class SeleniumCollector(BaseCollector):
         """Collect tweets from X search until a stop condition is met."""
         if limit < 1:
             return []
+        self._last_status = CollectorStatus.SUCCESS
+        self._last_error = None
         self.initialize()
         assert self.driver is not None
 
@@ -191,19 +200,73 @@ class SeleniumCollector(BaseCollector):
 
         except LoginWallDetected:
             self._log(logging.WARNING, "login_wall_detected")
+            self._last_status = CollectorStatus.LOGIN_REQUIRED
+            self._last_error = "login wall detected"
             self.checkpoint()
         except TimeoutException as exc:
             self._log(logging.WARNING, "collection_timeout", error=str(exc))
+            self._last_status = CollectorStatus.PARTIAL
+            self._last_error = str(exc)
             self.checkpoint()
         except RateLimited:
+            self._last_status = CollectorStatus.THROTTLED
+            self._last_error = "possible throttling persisted after retries were exhausted"
             raise
         except WebDriverException as exc:
             self.checkpoint()
+            self._last_status = CollectorStatus.FAILED
+            self._last_error = str(exc)
             raise ExtractionError(f"browser collection failed: {exc}") from exc
         finally:
             self.checkpoint()
 
         return list(self.collected_tweets.values())[:limit]
+
+    def collect_result(self, query: str, limit: int) -> CollectorResult:
+        """Collect records without surfacing Selenium/source errors to pipelines."""
+        started = datetime.now(timezone.utc)
+        records: list[Tweet] = []
+
+        if self.should_backoff():
+            self._log(logging.WARNING, "possible_throttling_detected", **self.metrics.to_dict())
+            self.checkpoint()
+            return CollectorResult(
+                records=[],
+                status=CollectorStatus.THROTTLED,
+                started_at=started,
+                ended_at=datetime.now(timezone.utc),
+                error_message="throttling metrics were already above threshold",
+                source_name="selenium_x",
+            )
+
+        try:
+            records = self.collect(query=query, limit=limit)
+            status = self._last_status
+            error = self._last_error
+            if status == CollectorStatus.SUCCESS and len(records) < limit:
+                status = CollectorStatus.PARTIAL if records else CollectorStatus.THROTTLED
+                error = error or "collection ended before desired record count"
+        except RateLimited as exc:
+            records = list(self.collected_tweets.values())[:limit]
+            status = CollectorStatus.THROTTLED
+            error = str(exc)
+        except LoginWallDetected as exc:
+            records = list(self.collected_tweets.values())[:limit]
+            status = CollectorStatus.LOGIN_REQUIRED
+            error = str(exc)
+        except Exception as exc:  # noqa: BLE001 - result envelope is the pipeline boundary.
+            records = list(self.collected_tweets.values())[:limit]
+            status = CollectorStatus.FAILED
+            error = str(exc)
+
+        return CollectorResult(
+            records=records,
+            status=status,
+            started_at=started,
+            ended_at=datetime.now(timezone.utc),
+            error_message=error,
+            source_name="selenium_x",
+        )
 
     def checkpoint(self) -> Path:
         """Persist current collection state to JSON."""

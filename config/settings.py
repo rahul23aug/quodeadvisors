@@ -39,6 +39,7 @@ class CollectorSettings:
     headless: bool = True
     chrome_profile_path: str | Path | None = None
     chrome_binary_path: str | Path | None = None
+    chrome_driver_path: str | Path | None = None
     checkpoint_path: str | Path = Path("data/checkpoints/x_collector_checkpoint.json")
     min_wait_seconds: float = 1.5
     max_wait_seconds: float = 4.0
@@ -65,6 +66,12 @@ class CollectorSettings:
             if not binary_path.exists():
                 raise ConfigurationError(f"chrome_binary_path does not exist: {binary_path}")
             object.__setattr__(self, "chrome_binary_path", binary_path)
+
+        if self.chrome_driver_path is not None:
+            driver_path = Path(self.chrome_driver_path)
+            if not driver_path.exists():
+                raise ConfigurationError(f"chrome_driver_path does not exist: {driver_path}")
+            object.__setattr__(self, "chrome_driver_path", driver_path)
 
         if self.min_wait_seconds < 0 or self.max_wait_seconds < 0:
             raise ConfigurationError("wait intervals must be non-negative")

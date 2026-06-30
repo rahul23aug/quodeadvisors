@@ -1,3 +1,75 @@
 # quodeadvisors
 
-Project repository for quodeadvisors.
+Quantitative data engineering project for collecting, normalizing, and processing Indian market discussion data.
+
+## X/Twitter Collector Architecture
+
+The X/Twitter source is intentionally designed as a resilient data pipeline stage, not as an evasion scraper.
+
+### Source Boundary
+
+Downstream processing code should consume `CollectorResult` objects and `Tweet` records. It should not know whether records came from Selenium, a browser profile, or local fallback sample data.
+
+Core models:
+
+- `Tweet`: normalized tweet payload used by all source implementations.
+- `CollectorStatus`: `SUCCESS`, `PARTIAL`, `THROTTLED`, `LOGIN_REQUIRED`, `FAILED`.
+- `CollectorResult`: source-neutral result envelope containing records, status, timestamps, error message, and source name.
+
+### Collectors
+
+- `SeleniumCollector`: best-effort X/Twitter collector using Selenium 4 and Chrome/Chromium.
+- `FallbackSampleCollector`: reads normalized sample tweets from `data/input/sample_tweets.jsonl`.
+- `SourceOrchestrator`: tries Selenium first and falls back to sample JSONL when Selenium returns `THROTTLED`, `LOGIN_REQUIRED`, or `FAILED`.
+
+### Throttling Handling
+
+The Selenium collector detects degraded source access when:
+
+- consecutive scrolls produce no new tweets,
+- duplicate ratio is high,
+- a login wall appears,
+- tweet ingestion rate drops below the configured threshold.
+
+On suspected throttling, the collector:
+
+1. logs a structured warning,
+2. writes a checkpoint,
+3. returns `CollectorResult(status=CollectorStatus.THROTTLED)`,
+4. does not crash the pipeline.
+
+### Anti-Bot Boundary
+
+The collector does not implement stealth or bypass behavior.
+
+Explicitly excluded:
+
+- stealth browser patches,
+- proxy rotation,
+- CAPTCHA bypass,
+- cookie injection,
+- authentication-token manipulation,
+- fingerprint spoofing.
+
+If a local Chrome profile is supplied, authentication happens naturally through that browser profile. The code does not extract credentials, inject cookies, or manipulate auth tokens.
+
+### Why Fallback Exists
+
+X/Twitter may return empty feeds, login walls, slow renderer responses, or throttled pages even when the browser starts correctly. A production-shaped data pipeline should preserve partial progress, make source degradation observable, and keep downstream stages testable.
+
+The fallback sample collector allows cleaning, normalization, storage, analytics, and dashboard code to run deterministically even when live collection is unavailable.
+
+## Development
+
+Install dependencies:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+```
+
+Run tests:
+
+```bash
+.venv/bin/python -m pytest -q
+```
