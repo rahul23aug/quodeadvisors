@@ -7,7 +7,6 @@ import logging
 from collector.base import BaseCollector
 from collector.fallback_sample_collector import FallbackSampleCollector
 from collector.models import CollectorResult, CollectorStatus
-from collector.selenium_collector import SeleniumCollector
 
 LOGGER = logging.getLogger(__name__)
 

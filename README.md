@@ -1,6 +1,29 @@
 # quodeadvisors
 
 Quantitative data engineering project for collecting, normalizing, and processing Indian market discussion data.
+## Project Overview
+
+This project implements a production-oriented market intelligence pipeline that collects, processes, and analyzes discussions related to the Indian stock market from X (Twitter). The system is designed to transform unstructured social media content into structured quantitative research signals through a modular, fault-tolerant, and scalable data engineering architecture.
+
+The pipeline consists of:
+
+* Data Collection - Selenium-based collector with resilient checkpointing, throttling detection, and structured logging.
+* Data Processing - Text normalization, Unicode handling, deduplication, and feature extraction.
+* Storage - Efficient columnar storage using Apache Parquet.
+* Signal Generation - Engagement-weighted, recency-aware research signals derived from market discussions.
+* Visualization & Analytics - Lightweight analytical views designed for large datasets.
+* Validation Hooks - Extensible interfaces for future forward-return and predictive performance evaluation.
+
+The system is intentionally modular so that collectors, storage backends, and signal-generation techniques can be replaced independently without affecting the remainder of the pipeline.
+
+
+## Scope and Assumptions
+
+The generated signals are research signals, not trading recommendations.
+
+The objective of this project is to demonstrate software engineering, data engineering, and system design practices under the assignment’s 24-hour delivery constraint. Where live access to X/Twitter is limited by platform throttling, the system is designed to fail gracefully, preserve collected data, and continue downstream processing using the same pipeline architecture.
+
+The signal-generation framework is designed to support future validation against market returns but does not claim predictive performance within the scope of this assignment.
 
 ## X/Twitter Collector Architecture
 
@@ -33,6 +56,8 @@ Core models:
 - `SeleniumCollector`: best-effort X/Twitter collector using Selenium 4 and Chrome/Chromium.
 - `FallbackSampleCollector`: reads normalized sample tweets from `data/input/sample_tweets.jsonl`.
 - `SourceOrchestrator`: tries Selenium first and falls back to sample JSONL when Selenium returns `THROTTLED`, `LOGIN_REQUIRED`, or `FAILED`.
+
+`SourceOrchestrator` is the boundary that turns degraded-source handling into a normal pipeline concern. Live collection can fail, throttle, or require login without forcing downstream cleaning, storage, signal generation, or visualization code to know which source produced the records.
 
 ### Throttling Handling
 
@@ -80,8 +105,10 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements-dev.txt
 ```
 
-Run tests:
+Run quality checks:
 
 ```bash
 .venv/bin/python -m pytest -q
+.venv/bin/ruff check .
+.venv/bin/mypy .
 ```
