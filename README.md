@@ -17,6 +17,28 @@ The pipeline consists of:
 The system is intentionally modular so that collectors, storage backends, and signal-generation techniques can be replaced independently without affecting the remainder of the pipeline.
 
 
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A[CLI / main.py] --> B[SourceOrchestrator]
+    B --> C[SeleniumCollector - best-effort live X source]
+    B --> D[FallbackSampleCollector - local JSONL sample source]
+    C --> E[CollectorResult]
+    D --> E
+    E --> F[Clean + normalize]
+    F --> G[Hash dedupe]
+    G --> H[Feature generation]
+    H --> I[Aggregation]
+    H --> J[tweets_features.parquet]
+    I --> K[signals_aggregated.parquet]
+    I --> L[composite_signal.png]
+    C -. throttled/login/failure .-> D
+```
+
+See `docs/architecture.md` for the editable architecture note and design boundary explanation.
+
 ## Scope and Assumptions
 
 The generated signals are research signals, not trading recommendations.
@@ -59,6 +81,19 @@ Core models:
 
 `SourceOrchestrator` is the boundary that turns degraded-source handling into a normal pipeline concern. Live collection can fail, throttle, or require login without forcing downstream cleaning, storage, signal generation, or visualization code to know which source produced the records.
 
+
+### Future Kafka Extension
+
+The code is structured so Kafka workers can be added later without rewriting the collector or downstream processors, but Kafka is not implemented in this assignment.
+
+Best future extension:
+
+- collector worker publishes `Tweet` or `CollectorResult` records to Kafka.
+- processor workers consume tweets, clean/dedupe/features.
+- storage worker writes Parquet.
+- DLQ topic stores failed records.
+- dedupe uses Redis/Postgres/DuckDB state instead of in-memory set.
+
 ### Throttling Handling
 
 The Selenium collector detects degraded source access when:
@@ -95,6 +130,56 @@ If a local Chrome profile is supplied, authentication happens naturally through 
 X/Twitter may return empty feeds, login walls, slow renderer responses, or throttled pages even when the browser starts correctly. A production-shaped data pipeline should preserve partial progress, make source degradation observable, and keep downstream stages testable.
 
 The fallback sample collector allows cleaning, normalization, storage, analytics, and dashboard code to run deterministically even when live collection is unavailable.
+
+
+## Run the Project
+
+After installing dependencies, run a small end-to-end pipeline execution:
+
+```bash
+.venv/bin/python main.py --limit 100 --collection-timeout-seconds 10 --max-retries 0
+```
+
+The live X collector is attempted first. If X throttles or blocks automated browser access, the pipeline falls back to `data/input/sample_tweets.jsonl` and still exercises the same downstream cleaning, deduplication, storage, signal-generation, and visualization flow.
+
+Expected outputs:
+
+```text
+data/output/tweets_features.parquet
+data/output/signals_aggregated.parquet
+data/output/composite_signal.png
+```
+
+Main verification command:
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
+
+## Validation Run
+
+A clean validation run was performed from a fresh virtual environment created outside the repository.
+
+Commands verified:
+
+```bash
+python3 -m venv /tmp/quodeadvisors_fresh_venv
+/tmp/quodeadvisors_fresh_venv/bin/pip install -r requirements-dev.txt
+/tmp/quodeadvisors_fresh_venv/bin/python -m pytest -q
+/tmp/quodeadvisors_fresh_venv/bin/ruff check .
+/tmp/quodeadvisors_fresh_venv/bin/mypy .
+```
+
+Observed results:
+
+```text
+pytest: 29 passed
+ruff: All checks passed
+mypy: Success: no issues found in 25 source files
+```
+
+This confirms that the documented development checks work after a clean dependency installation, including third-party libraries such as Selenium, Polars, and Matplotlib.
 
 ## Development
 
