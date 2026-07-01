@@ -119,3 +119,30 @@ def test_aggregation_and_plot_are_low_memory(tmp_path: Path):
     assert "composite_signal_mean" in aggregated.columns
     assert plot_path.exists()
     assert plot_path.stat().st_size > 0
+
+
+def test_composite_signal_preserves_bullish_bearish_direction():
+    frame = clean_tweets(
+        result(
+            [
+                tweet("bull", "nifty breakout bullish gapup", minutes_ago=1, likes=10),
+                tweet("bear", "nifty breakdown bearish gapdown dump", minutes_ago=1, likes=10),
+            ]
+        )
+    )
+
+    features = add_signal_features(frame, now=datetime.now(timezone.utc))
+    by_id = {row["tweet_id"]: row for row in features.iter_rows(named=True)}
+
+    assert by_id["bull"]["composite_signal"] > 0
+    assert by_id["bear"]["composite_signal"] < 0
+
+
+def test_aggregation_includes_signal_dispersion_and_recency():
+    frame = clean_tweets(result([tweet("1", "nifty bullish", likes=10), tweet("2", "nifty bearish", likes=2)]))
+    features = add_signal_features(frame, now=datetime.now(timezone.utc))
+
+    aggregated = aggregate_signals(features, every="1h")
+
+    assert "composite_signal_std" in aggregated.columns
+    assert "recency_decay_mean" in aggregated.columns
