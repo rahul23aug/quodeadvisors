@@ -16,6 +16,15 @@ The pipeline consists of:
 
 The system is intentionally modular so that collectors, storage backends, and signal-generation techniques can be replaced independently without affecting the remainder of the pipeline.
 
+
+## Scope and Assumptions
+
+The generated signals are research signals, not trading recommendations.
+
+The objective of this project is to demonstrate software engineering, data engineering, and system design practices under the assignment’s 24-hour delivery constraint. Where live access to X/Twitter is limited by platform throttling, the system is designed to fail gracefully, preserve collected data, and continue downstream processing using the same pipeline architecture.
+
+The signal-generation framework is designed to support future validation against market returns but does not claim predictive performance within the scope of this assignment.
+
 ## X/Twitter Collector Architecture
 
 The X/Twitter source is intentionally designed as a resilient data pipeline stage, not as an evasion scraper.
