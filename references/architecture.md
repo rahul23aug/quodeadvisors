@@ -5,24 +5,19 @@ The system is organized as a source-neutral market intelligence pipeline. Collec
 ```mermaid
 flowchart TD
     A[CLI / main.py] --> B[SourceOrchestrator]
-
-    B --> C[SeleniumCollector\nBest-effort live X source]
-    B --> D[FallbackSampleCollector\nLocal JSONL sample source]
-
-    C --> E[CollectorResult\nstatus + records + metadata]
-    D --> E
-
-    E --> F[processor.cleaner\nUnicode normalization\nentity normalization]
-    F --> G[processor.dedupe\nhash-based O(1) dedupe]
-    G --> H[signals.features\nTF-IDF terms\nengagement score\nrecency decay\ncomposite signal]
-    H --> I[signals.aggregation\ntime-bucket aggregation]
-
-    H --> J[storage.parquet_writer\ntweets_features.parquet]
-    I --> K[storage.parquet_writer\nsignals_aggregated.parquet]
-    I --> L[viz.plots\ncomposite_signal.png]
-
-    C -. degraded source .-> M[THROTTLED / LOGIN_REQUIRED / FAILED]
-    M -. fallback .-> D
+    B --> C[SeleniumCollector<br/>Best-effort live X source]
+    B --> D[FallbackSampleCollector<br/>Local JSONL sample source]
+    C --> E{CollectorStatus}
+    E -->|SUCCESS / PARTIAL| F[CollectorResult]
+    E -->|THROTTLED / LOGIN_REQUIRED / FAILED| D
+    D --> F
+    F --> G[Clean + normalize]
+    G --> H[Hash dedupe]
+    H --> I[Feature generation]
+    I --> J[Aggregation]
+    I --> K[tweets_features.parquet]
+    J --> L[signals_aggregated.parquet]
+    J --> M[composite_signal.png]
 ```
 
 ## Key Design Boundary

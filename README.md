@@ -23,18 +23,19 @@ The system is intentionally modular so that collectors, storage backends, and si
 ```mermaid
 flowchart TD
     A[CLI / main.py] --> B[SourceOrchestrator]
-    B --> C[SeleniumCollector - best-effort live X source]
-    B --> D[FallbackSampleCollector - local JSONL sample source]
-    C --> E[CollectorResult]
-    D --> E
-    E --> F[Clean + normalize]
-    F --> G[Hash dedupe]
-    G --> H[Feature generation]
-    H --> I[Aggregation]
-    H --> J[tweets_features.parquet]
-    I --> K[signals_aggregated.parquet]
-    I --> L[composite_signal.png]
-    C -. throttled/login/failure .-> D
+    B --> C[SeleniumCollector<br/>Best-effort live X source]
+    B --> D[FallbackSampleCollector<br/>Local JSONL sample source]
+    C --> E{CollectorStatus}
+    E -->|SUCCESS / PARTIAL| F[CollectorResult]
+    E -->|THROTTLED / LOGIN_REQUIRED / FAILED| D
+    D --> F
+    F --> G[Clean + normalize]
+    G --> H[Hash dedupe]
+    H --> I[Feature generation]
+    I --> J[Aggregation]
+    I --> K[tweets_features.parquet]
+    J --> L[signals_aggregated.parquet]
+    J --> M[composite_signal.png]
 ```
 
 See `references/architecture.md` for the editable architecture note and design boundary explanation.
