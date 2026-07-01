@@ -17,6 +17,28 @@ The pipeline consists of:
 The system is intentionally modular so that collectors, storage backends, and signal-generation techniques can be replaced independently without affecting the remainder of the pipeline.
 
 
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A[CLI / main.py] --> B[SourceOrchestrator]
+    B --> C[SeleniumCollector - best-effort live X source]
+    B --> D[FallbackSampleCollector - local JSONL sample source]
+    C --> E[CollectorResult]
+    D --> E
+    E --> F[Clean + normalize]
+    F --> G[Hash dedupe]
+    G --> H[Feature generation]
+    H --> I[Aggregation]
+    H --> J[tweets_features.parquet]
+    I --> K[signals_aggregated.parquet]
+    I --> L[composite_signal.png]
+    C -. throttled/login/failure .-> D
+```
+
+See `docs/architecture.md` for the editable architecture note and design boundary explanation.
+
 ## Scope and Assumptions
 
 The generated signals are research signals, not trading recommendations.
