@@ -21,6 +21,8 @@ def aggregate_signals(frame: pl.DataFrame, every: str = "1h") -> pl.DataFrame:
             pl.col("engagement_score").mean().alias("engagement_score_mean"),
             pl.col("composite_signal").mean().alias("composite_signal_mean"),
             pl.col("composite_signal").sum().alias("composite_signal_sum"),
+            pl.col("composite_signal").std().alias("composite_signal_std"),
+            pl.col("recency_decay").mean().alias("recency_decay_mean"),
             pl.col("lexical_sentiment").mean().alias("lexical_sentiment_mean"),
         )
         .sort("timestamp")

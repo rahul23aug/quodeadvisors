@@ -20,7 +20,7 @@ Tweet-level features include:
 * engagement score using replies, retweets, likes, and log-scaled views,
 * recency decay using a configurable half-life style decay,
 * lexical sentiment proxy based on small market-specific positive and negative term sets,
-* composite signal combining engagement, recency, and lexical signal strength.
+* directional composite signal combining lexical sentiment, log-scaled engagement, and recency.
 
 Aggregated features include time-bucket summaries of:
 
@@ -28,6 +28,8 @@ Aggregated features include time-bucket summaries of:
 * mean engagement score,
 * mean composite signal,
 * summed composite signal,
+* composite signal standard deviation,
+* mean recency decay,
 * mean lexical sentiment.
 
 The output is written to Parquet and visualized only after aggregation to keep plotting memory usage low.
@@ -38,7 +40,7 @@ TF-IDF is simple, explainable, and deterministic. It avoids introducing heavy mo
 
 Engagement weighting reflects that market discussions with replies, retweets, likes, and views may carry more attention than isolated posts. Log-scaling views prevents high-view posts from dominating excessively.
 
-Recency decay reflects that market discussions lose relevance over time. Combining recency with engagement creates a research signal that is more useful than raw tweet count alone.
+Recency decay reflects that market discussions lose relevance over time. The composite signal preserves direction: positive values indicate bullish lexical pressure, negative values indicate bearish lexical pressure, and values near zero indicate neutral or weak directional pressure.
 
 Aggregation before visualization supports large datasets because charts use compact time-bucketed data instead of raw tweet-level records.
 
@@ -56,7 +58,7 @@ Trade-offs:
 
 * TF-IDF is lexical, not semantic,
 * sentiment proxy is intentionally simple,
-* composite signal is a research feature, not a prediction,
+* composite signal is a directional research feature, not a prediction,
 * predictive performance is not claimed in this assignment scope.
 
 ## Validation

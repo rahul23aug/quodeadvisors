@@ -32,9 +32,9 @@ def add_signal_features(frame: pl.DataFrame, now: datetime | None = None, top_k_
     frame = _add_tfidf_features(frame, top_k_terms=top_k_terms)
     frame = frame.with_columns(
         (
-            pl.col("engagement_score")
+            pl.col("lexical_sentiment")
+            * pl.col("engagement_score").log1p()
             * pl.col("recency_decay")
-            * (1.0 + pl.col("lexical_sentiment").abs() * 0.1)
         ).alias("composite_signal")
     )
     LOGGER.info("event=signal_features_added rows=%s columns=%s", frame.height, len(frame.columns))
@@ -86,8 +86,31 @@ def _tokens(text: str | None) -> list[str]:
 
 def _sentiment_score(text: str | None) -> float:
     tokens = set(_tokens(text))
-    positive = {"bull", "bullish", "breakout", "rally", "long", "buy", "support", "upside"}
-    negative = {"bear", "bearish", "breakdown", "sell", "short", "resistance", "crash", "downside"}
+    positive = {
+        "bull",
+        "bullish",
+        "breakout",
+        "rally",
+        "long",
+        "buy",
+        "support",
+        "upside",
+        "bounce",
+        "reversal",
+        "gapup",
+    }
+    negative = {
+        "bear",
+        "bearish",
+        "breakdown",
+        "sell",
+        "short",
+        "resistance",
+        "crash",
+        "downside",
+        "gapdown",
+        "dump",
+    }
     return float(len(tokens & positive) - len(tokens & negative))
 
 
