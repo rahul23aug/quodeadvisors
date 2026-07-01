@@ -6,7 +6,7 @@ import logging
 import re
 import unicodedata
 from datetime import datetime, timezone
-from typing import Iterable
+from typing import Any, Iterable
 
 import polars as pl
 
@@ -95,7 +95,7 @@ def _safe_int(value: int | None) -> int:
     return int(value or 0)
 
 
-def _schema() -> dict[str, pl.DataType]:
+def _schema() -> dict[str, Any]:
     return {
         "tweet_id": pl.String,
         "username": pl.String,

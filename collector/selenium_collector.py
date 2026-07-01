@@ -34,7 +34,7 @@ try:  # Selenium is optional until initialize() creates a browser session.
 except Exception:  # pragma: no cover - exercised only when Selenium is missing.
     webdriver = None  # type: ignore[assignment]
     StaleElementReferenceException = TimeoutException = WebDriverException = Exception  # type: ignore[misc,assignment]
-    By = None  # type: ignore[assignment]
+    By = None  # type: ignore[misc,assignment]
     WebDriver = Any  # type: ignore[misc,assignment]
     WebElement = Any  # type: ignore[misc,assignment]
 
