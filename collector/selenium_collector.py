@@ -433,7 +433,8 @@ class SeleniumCollector(BaseCollector):
 
     def extract_hashtags(self, text: str) -> list[str]:
         """Extract hashtags without the leading #."""
-        return re.findall(r"(?<!\S)#([^\s#@]+)", text, flags=re.UNICODE)
+        raw_tags = re.findall(r"(?<!\S)#([^\s#@]+)", text, flags=re.UNICODE)
+        return [tag.strip(".,:;!?)]}'\"") for tag in raw_tags if tag.strip(".,:;!?)]}'\"")]
 
     def extract_mentions(self, text: str) -> list[str]:
         """Extract mentions without the leading @."""

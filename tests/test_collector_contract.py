@@ -190,3 +190,9 @@ def test_missing_tweet_text_returns_empty_content():
     collector = SeleniumCollector(settings=CollectorSettings())
 
     assert collector._extract_content(_NoTweetTextArticle()) == ""
+
+
+def test_hashtag_extraction_strips_trailing_punctuation():
+    collector = SeleniumCollector(settings=CollectorSettings())
+
+    assert collector.extract_hashtags("Watch #nifty50, #banknifty. #निफ्टी,") == ["nifty50", "banknifty", "निफ्टी"]
