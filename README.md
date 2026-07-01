@@ -158,6 +158,11 @@ Main verification command:
 ```
 
 
+
+## Development Environment
+
+This project was developed and validated on a Raspberry Pi 4B running Linux. The implementation avoids platform-specific assumptions where practical, but Selenium browser execution depends on having a compatible Chrome/Chromium and chromedriver installation for the target machine.
+
 ## Validation Run
 
 A clean validation run was performed from a fresh virtual environment created outside the repository.
