@@ -162,8 +162,7 @@ class SeleniumCollector(BaseCollector):
         """Collect tweets from X search until a stop condition is met."""
         if limit < 1:
             return []
-        self._last_status = CollectorStatus.SUCCESS
-        self._last_error = None
+        self._reset_run_state()
         self.initialize()
         assert self.driver is not None
 
@@ -221,6 +220,15 @@ class SeleniumCollector(BaseCollector):
             self.checkpoint()
 
         return list(self.collected_tweets.values())[:limit]
+
+    def _reset_run_state(self) -> None:
+        """Reset per-run state so repeated collect() calls are isolated."""
+        self.metrics = CollectorMetrics(self.settings.throttling.rolling_window_size)
+        self.collected_tweets = {}
+        self.seen_tweet_ids = set()
+        self.retry_attempts = 0
+        self._last_status = CollectorStatus.SUCCESS
+        self._last_error = None
 
     def collect_result(self, query: str, limit: int) -> CollectorResult:
         """Collect records without surfacing Selenium/source errors to pipelines."""
@@ -378,7 +386,8 @@ class SeleniumCollector(BaseCollector):
     def scroll_once(self) -> None:
         """Scroll the current page down once."""
         assert self.driver is not None
-        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        step = self._random.randint(600, 1200)
+        self.driver.execute_script("window.scrollBy(0, arguments[0]);", step)
 
     def should_backoff(self) -> bool:
         """Return true when rolling metrics indicate degraded source access."""
@@ -424,7 +433,7 @@ class SeleniumCollector(BaseCollector):
 
     def extract_hashtags(self, text: str) -> list[str]:
         """Extract hashtags without the leading #."""
-        return re.findall(r"(?<!\w)#([A-Za-z0-9_]+)", text)
+        return re.findall(r"(?<!\S)#([^\s#@]+)", text, flags=re.UNICODE)
 
     def extract_mentions(self, text: str) -> list[str]:
         """Extract mentions without the leading @."""
@@ -455,7 +464,7 @@ class SeleniumCollector(BaseCollector):
         nodes = article.find_elements(By.CSS_SELECTOR, 'div[data-testid="tweetText"]')
         if nodes:
             return nodes[0].text.strip()
-        return article.text.strip()
+        return ""
 
     def _extract_display_name(self, article: WebElement) -> str | None:
         text = article.text.strip()
@@ -497,6 +506,8 @@ class SeleniumCollector(BaseCollector):
         return None
 
     def _bounded_wait(self, minimum: float, maximum: float) -> None:
+        minimum = max(0.0, minimum)
+        maximum = max(minimum, maximum)
         if maximum <= 0:
             return
         self._sleeper(self._random.uniform(minimum, maximum))
