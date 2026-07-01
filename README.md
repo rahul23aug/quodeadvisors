@@ -57,6 +57,8 @@ Core models:
 - `FallbackSampleCollector`: reads normalized sample tweets from `data/input/sample_tweets.jsonl`.
 - `SourceOrchestrator`: tries Selenium first and falls back to sample JSONL when Selenium returns `THROTTLED`, `LOGIN_REQUIRED`, or `FAILED`.
 
+`SourceOrchestrator` is the boundary that turns degraded-source handling into a normal pipeline concern. Live collection can fail, throttle, or require login without forcing downstream cleaning, storage, signal generation, or visualization code to know which source produced the records.
+
 ### Throttling Handling
 
 The Selenium collector detects degraded source access when:
