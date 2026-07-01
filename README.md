@@ -37,7 +37,7 @@ flowchart TD
     C -. throttled/login/failure .-> D
 ```
 
-See `docs/architecture.md` for the editable architecture note and design boundary explanation.
+See `references/architecture.md` for the editable architecture note and design boundary explanation.
 
 ## Scope and Assumptions
 
