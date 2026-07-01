@@ -96,6 +96,31 @@ X/Twitter may return empty feeds, login walls, slow renderer responses, or throt
 
 The fallback sample collector allows cleaning, normalization, storage, analytics, and dashboard code to run deterministically even when live collection is unavailable.
 
+
+## Run the Project
+
+After installing dependencies, run a small end-to-end pipeline execution:
+
+```bash
+.venv/bin/python main.py --limit 100 --collection-timeout-seconds 10 --max-retries 0
+```
+
+The live X collector is attempted first. If X throttles or blocks automated browser access, the pipeline falls back to `data/input/sample_tweets.jsonl` and still exercises the same downstream cleaning, deduplication, storage, signal-generation, and visualization flow.
+
+Expected outputs:
+
+```text
+data/output/tweets_features.parquet
+data/output/signals_aggregated.parquet
+data/output/composite_signal.png
+```
+
+Main verification command:
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
 ## Development
 
 Install dependencies:
