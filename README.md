@@ -1,6 +1,20 @@
 # quodeadvisors
 
 Quantitative data engineering project for collecting, normalizing, and processing Indian market discussion data.
+## Project Overview
+
+This project implements a production-oriented market intelligence pipeline that collects, processes, and analyzes discussions related to the Indian stock market from X (Twitter). The system is designed to transform unstructured social media content into structured quantitative research signals through a modular, fault-tolerant, and scalable data engineering architecture.
+
+The pipeline consists of:
+
+* Data Collection - Selenium-based collector with resilient checkpointing, throttling detection, and structured logging.
+* Data Processing - Text normalization, Unicode handling, deduplication, and feature extraction.
+* Storage - Efficient columnar storage using Apache Parquet.
+* Signal Generation - Engagement-weighted, recency-aware research signals derived from market discussions.
+* Visualization & Analytics - Lightweight analytical views designed for large datasets.
+* Validation Hooks - Extensible interfaces for future forward-return and predictive performance evaluation.
+
+The system is intentionally modular so that collectors, storage backends, and signal-generation techniques can be replaced independently without affecting the remainder of the pipeline.
 
 ## X/Twitter Collector Architecture
 
