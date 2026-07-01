@@ -243,7 +243,10 @@ class SeleniumCollector(BaseCollector):
             records = self.collect(query=query, limit=limit)
             status = self._last_status
             error = self._last_error
-            if status == CollectorStatus.SUCCESS and len(records) < limit:
+            if not records and status in {CollectorStatus.SUCCESS, CollectorStatus.PARTIAL}:
+                status = CollectorStatus.THROTTLED
+                error = error or "source returned no records before stop condition"
+            elif status == CollectorStatus.SUCCESS and len(records) < limit:
                 status = CollectorStatus.PARTIAL if records else CollectorStatus.THROTTLED
                 error = error or "collection ended before desired record count"
         except RateLimited as exc:

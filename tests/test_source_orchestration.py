@@ -120,3 +120,23 @@ def test_source_orchestrator_falls_back_on_throttled(tmp_path: Path):
     assert result.status == CollectorStatus.SUCCESS
     assert result.source_name == 'sample_jsonl'
     assert result.records[0].tweet_id == 'sample-1'
+
+
+def test_source_orchestrator_falls_back_on_zero_record_throttled_result(tmp_path: Path):
+    sample_path = tmp_path / 'sample_tweets.jsonl'
+    sample_path.write_text(json.dumps(make_tweet('fallback-zero').to_dict()) + '\n', encoding='utf-8')
+    primary = StaticResultCollector(
+        CollectorResult(
+            records=[],
+            status=CollectorStatus.THROTTLED,
+            started_at=datetime.now(timezone.utc),
+            ended_at=datetime.now(timezone.utc),
+            error_message='source returned no records',
+            source_name='selenium_x',
+        )
+    )
+
+    result = SourceOrchestrator(primary=primary, fallback=FallbackSampleCollector(sample_path)).collect('NIFTY', 5)
+
+    assert result.source_name == 'sample_jsonl'
+    assert result.records[0].tweet_id == 'fallback-zero'
