@@ -64,6 +64,11 @@ When detected, the collector will:
 4. pause with exponential backoff,
 5. stop safely if the configured retry limit is exceeded.
 
+
+Alternative Considered
+
+Browser fingerprint spoofing and other stealth techniques were evaluated. They were intentionally not adopted because they increase implementation complexity, reduce long-term maintainability, and depend on continuously adapting to platform-specific detection mechanisms. The chosen design prioritizes resilience, observability, and graceful degradation over evasion.
+
 Consequences
 
 Benefits
