@@ -81,6 +81,19 @@ Core models:
 
 `SourceOrchestrator` is the boundary that turns degraded-source handling into a normal pipeline concern. Live collection can fail, throttle, or require login without forcing downstream cleaning, storage, signal generation, or visualization code to know which source produced the records.
 
+
+### Future Kafka Extension
+
+The code is structured so Kafka workers can be added later without rewriting the collector or downstream processors, but Kafka is not implemented in this assignment.
+
+Best future extension:
+
+- collector worker publishes `Tweet` or `CollectorResult` records to Kafka.
+- processor workers consume tweets, clean/dedupe/features.
+- storage worker writes Parquet.
+- DLQ topic stores failed records.
+- dedupe uses Redis/Postgres/DuckDB state instead of in-memory set.
+
 ### Throttling Handling
 
 The Selenium collector detects degraded source access when:
