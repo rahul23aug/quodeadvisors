@@ -103,8 +103,10 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements-dev.txt
 ```
 
-Run tests:
+Run quality checks:
 
 ```bash
 .venv/bin/python -m pytest -q
+.venv/bin/ruff check .
+.venv/bin/mypy .
 ```
