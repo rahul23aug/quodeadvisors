@@ -130,3 +130,69 @@ def test_rate_limit_raised_when_retries_exhausted():
 
     with pytest.raises(RateLimited):
         collector.handle_possible_throttling()
+
+
+def test_collect_resets_run_state_before_browser_work(tmp_path: Path):
+    settings = CollectorSettings(checkpoint_path=tmp_path / "checkpoint.json")
+    collector = SeleniumCollector(settings=settings)
+    collector.collected_tweets["stale"] = Tweet(
+        tweet_id="stale",
+        username="old",
+        display_name="Old",
+        timestamp=None,
+        content="old",
+        hashtags=[],
+        mentions=[],
+        url="https://x.com/old/status/stale",
+    )
+    collector.seen_tweet_ids.add("stale")
+    collector.metrics.record_scroll(new_tweets=0, duplicates=3)
+    collector.retry_attempts = 2
+
+    def fail_initialize() -> None:
+        raise RuntimeError("stop after reset")
+
+    collector.initialize = fail_initialize  # type: ignore[method-assign]
+
+    with pytest.raises(RuntimeError):
+        collector.collect("NIFTY", limit=1)
+
+    assert collector.collected_tweets == {}
+    assert collector.seen_tweet_ids == set()
+    assert collector.metrics.total_scrolls == 0
+    assert collector.retry_attempts == 0
+
+
+def test_bounded_wait_clamps_invalid_ranges():
+    sleeps: list[float] = []
+    collector = SeleniumCollector(settings=CollectorSettings(), sleeper=sleeps.append)
+
+    collector._bounded_wait(5.0, 1.0)
+
+    assert len(sleeps) == 1
+    assert sleeps[0] >= 5.0
+
+
+def test_hashtag_extraction_supports_unicode_words():
+    collector = SeleniumCollector(settings=CollectorSettings())
+
+    assert collector.extract_hashtags("#NIFTY #निफ्टी #சந்தை") == ["NIFTY", "निफ्टी", "சந்தை"]
+
+
+class _NoTweetTextArticle:
+    text = "username\nnot actual tweet content\n1 like"
+
+    def find_elements(self, by: object, selector: str):
+        return []
+
+
+def test_missing_tweet_text_returns_empty_content():
+    collector = SeleniumCollector(settings=CollectorSettings())
+
+    assert collector._extract_content(_NoTweetTextArticle()) == ""
+
+
+def test_hashtag_extraction_strips_trailing_punctuation():
+    collector = SeleniumCollector(settings=CollectorSettings())
+
+    assert collector.extract_hashtags("Watch #nifty50, #banknifty. #निफ्टी,") == ["nifty50", "banknifty", "निफ्टी"]

@@ -83,7 +83,7 @@ def test_selenium_collect_result_returns_throttled_without_raising(tmp_path: Pat
     assert result.status == CollectorStatus.THROTTLED
     assert result.records == []
     assert result.source_name == 'selenium_x'
-    assert settings.checkpoint_path.exists()
+    assert Path(settings.checkpoint_path).exists()
 
 
 def test_fallback_sample_collector_reads_jsonl(tmp_path: Path):
